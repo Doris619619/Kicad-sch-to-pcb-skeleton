@@ -49,3 +49,24 @@ Example installation paths:
 ```text
 D:\app\KiCad\9.0\bin\python.exe
 D:\app\KiCad\9.0\bin\kicad-cli.exe
+
+## Run
+
+### 0) Set your KiCad 9 paths (recommended)
+
+Find these two files in your KiCad 9 installation:
+
+- `python.exe` (KiCad bundled Python)
+- `kicad-cli.exe`
+
+Example locations (YOUR PATH MAY BE DIFFERENT):
+
+- `...\KiCad\9.0\bin\python.exe`
+- `...\KiCad\9.0\bin\kicad-cli.exe`
+
+---
+
+### 1) Windows CMD (template)
+
+```cmd
+"<KICAD9_PYTHON>" "<SCRIPT_PATH>" --sch "<SCHEMATIC_PATH>" --out "<OUTPUT_PCB_PATH>" --kicad-cli "<KICAD9_KICAD_CLI>" --keep-net
