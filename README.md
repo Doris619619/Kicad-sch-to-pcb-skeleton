@@ -1,3 +1,4 @@
+```markdown
 # kicad-sch-to-pcb-skeleton
 
 **Repository description:**  
@@ -17,7 +18,7 @@ Given a KiCad schematic, this tool generates a PCB skeleton containing:
 
 - footprints
 - net assignments
-- simple initial component placement (grid placement)
+- simple initial component placement
 
 ### What this project does not do
 
@@ -44,171 +45,125 @@ This project is currently tested on:
 - **KiCad 9 bundled Python**
 - **KiCad 9 bundled `kicad-cli.exe`**
 
-Example installation paths (your paths may differ):
+Example installation paths:
 
 ```text
-...\KiCad\9.0\bin\python.exe
-...\KiCad\9.0\bin\kicad-cli.exe
+D:\app\KiCad\9.0\bin\python.exe
+D:\app\KiCad\9.0\bin\kicad-cli.exe
+```
 
-Important:
+The script should work on Linux/macOS with appropriate paths, but these platforms have not been formally tested.
 
-Run the script with KiCad 9 bundled Python, not system/conda Python, unless your Python can import pcbnew.
+---
 
-kicad-cli is used to export the netlist; pcbnew is used to generate the .kicad_pcb skeleton.
+## Dependencies
 
-Repository Structure (suggested)
-.
-├─ tools/
-│  └─ sch_to_pcb_skeleton.py
-├─ examples/
-│  └─ case3/                      (optional demo project)
-│     ├─ case3.kicad_sch
-│     └─ case3_skeleton.kicad_pcb
-└─ README.md
-Requirements
+- KiCad 9 (with `kicad-cli` and the bundled Python environment)
+- Python 3 (the KiCad‑bundled Python is recommended)
 
-You need:
+No additional Python packages are required – the script uses only the standard library and KiCad’s `pcbnew` module.
 
-KiCad 9.0
+---
 
-Access to KiCad 9 bundled:
+## Installation
 
-python.exe
+1. Clone this repository or download `generate_pcb_skeleton.py` (or whatever the script is named, e.g., `sch_to_pcb_skeleton.py`).
+2. Ensure you have KiCad 9 installed and note the paths to:
+   - KiCad's bundled Python interpreter
+   - `kicad-cli` executable
 
-kicad-cli.exe
+---
 
-A KiCad schematic file (.kicad_sch) that is already:
+## Usage
 
-annotated (references are not R?, C?, etc.)
+### Command‑line arguments
 
-assigned footprints
+| Argument        | Description                                                                 |
+|-----------------|-----------------------------------------------------------------------------|
+| `--sch`         | Path to the input KiCad schematic (`.kicad_sch`).                           |
+| `--out`         | Path where the output PCB skeleton (`.kicad_pcb`) will be saved.            |
+| `--kicad-cli`   | Full path to the `kicad-cli` executable (e.g. `kicad-cli.exe` on Windows). |
+| `--keep-net`    | *(Optional)* Preserve the netlist after use (for debugging).                |
+| `--help`        | Show help message and exit.                                                 |
 
-Footprint libraries correctly configured in KiCad via:
+### Basic command (Windows)
 
-global fp-lib-table
+Open a Command Prompt and run:
 
-project fp-lib-table
+```cmd
+"<KICAD9_PYTHON>" "<PATH_TO_SCRIPT>\sch_to_pcb_skeleton.py" ^
+    --sch "<PATH_TO_SCH>\my_design.kicad_sch" ^
+    --out "<PATH_TO_OUTPUT>\my_design.kicad_pcb" ^
+    --kicad-cli "<KICAD9_CLI>\kicad-cli.exe"
+```
 
-If footprints cannot be resolved through KiCad library tables, the output PCB skeleton may miss components.
+Replace the placeholders with your actual paths:
 
-How it Works (High-Level)
+- `<KICAD9_PYTHON>` – e.g. `D:\app\KiCad\9.0\bin\python.exe`
+- `<PATH_TO_SCRIPT>` – where you saved the script
+- `<PATH_TO_SCH>` – folder containing your schematic
+- `<PATH_TO_OUTPUT>` – folder where the PCB file will be created
+- `<KICAD9_CLI>` – e.g. `D:\app\KiCad\9.0\bin\kicad-cli.exe`
 
-This project uses a two-stage pipeline:
+### Example (Windows)
 
-Stage 1 — Schematic → Netlist (via kicad-cli)
+Here is a concrete example from a real setup:
 
-The script calls KiCad CLI to export a netlist from .kicad_sch.
+```cmd
+D:\>"D:\app\KiCad\9.0\bin\python.exe" "D:\kicad_test\tools\sch_to_pcb_skeleton.py" --sch "D:\kicad_test\case3\case3.kicad_sch" --out "D:\kicad_test\case3\case3_skeleton.kicad_pcb" --kicad-cli "D:\app\KiCad\9.0\bin\kicad-cli.exe" --keep-net
+```
 
-The netlist is exported in a machine-readable format (kicadxml) for parsing.
+This command:
 
-Stage 2 — Netlist → PCB Skeleton (via pcbnew)
+- Uses the KiCad 9 Python interpreter.
+- Runs the script located at `D:\kicad_test\tools\sch_to_pcb_skeleton.py`.
+- Reads the schematic `D:\kicad_test\case3\case3.kicad_sch`.
+- Outputs the PCB skeleton to `D:\kicad_test\case3\case3_skeleton.kicad_pcb`.
+- Specifies the path to `kicad-cli.exe`.
+- The `--keep-net` flag keeps the intermediate netlist file for debugging.
 
-Parse the netlist and extract:
+### Linux / macOS
 
-component references
+On Unix‑like systems, adjust the paths and use the appropriate Python interpreter (KiCad’s bundled Python is typically installed under `/usr/bin` or a custom prefix). The `kicad-cli` executable is usually named `kicad-cli` (without `.exe`).
 
-footprint identifiers (LIB_NICKNAME:FOOTPRINT_NAME)
+```bash
+/path/to/kicad/bin/python generate_pcb_skeleton.py \
+    --sch /home/user/design/board.kicad_sch \
+    --out /home/user/design/board.kicad_pcb \
+    --kicad-cli /path/to/kicad/bin/kicad-cli
+```
 
-net connectivity (ref/pin → net)
+---
 
-Resolve footprint library nicknames using KiCad footprint library tables (fp-lib-table), including common variables like:
+## Output
 
-${KICAD9_FOOTPRINT_DIR}
+The script produces a `.kicad_pcb` file that contains:
 
-${KIPRJMOD}
+- All footprints from the schematic, placed in a simple initial layout (components are positioned in a rough grid; no routing is performed).
+- All nets and connections as defined in the schematic.
+- A default board outline (you will need to adjust it to your mechanical requirements).
 
-Create a new pcbnew.BOARD().
+This file can be opened directly in **PCB Editor** (`pcbnew`) for further manual refinement.
 
-Create net objects, load footprints, place them on a simple grid, and assign pads to nets.
+---
 
-Save the final .kicad_pcb skeleton.
+## Limitations & Notes
 
-Output
+- The component placement is rudimentary – it is **not** intended to be production‑ready. You must manually reposition components, route traces, add pours, etc.
+- The board outline is a placeholder; you must define the correct mechanical shape.
+- The script relies on `kicad-cli` to export a netlist and then uses `pcbnew` to create a board from that netlist.
+- Tested only with KiCad 9 on Windows. Future KiCad versions may require adjustments.
+- The `--keep-net` flag leaves the intermediate netlist file in the output directory for debugging; otherwise it is deleted automatically.
 
-The generated .kicad_pcb typically contains:
+---
 
-imported footprints
+## Contributing
 
-net assignments (ratsnest / connectivity)
+Contributions are welcome! If you encounter a bug or have an idea for improvement, please open an issue or submit a pull request.
 
-simple initial placement (grid)
+---
 
-To continue PCB design, open the output in KiCad PCB Editor and do:
+## License
 
-placement refinement
-
-board outline
-
-routing
-
-copper zones
-
-finishing steps
-
-Run
-0) Set your KiCad 9 paths (recommended)
-
-Find these two files in your KiCad 9 installation:
-
-python.exe (KiCad bundled Python)
-
-kicad-cli.exe
-
-Example locations (YOUR PATH MAY BE DIFFERENT):
-
-...\KiCad\9.0\bin\python.exe
-
-...\KiCad\9.0\bin\kicad-cli.exe
-
-1) Windows CMD (template)
-"<KICAD9_PYTHON>" "<SCRIPT_PATH>" --sch "<SCHEMATIC_PATH>" --out "<OUTPUT_PCB_PATH>" --kicad-cli "<KICAD9_KICAD_CLI>" --keep-net
-2) Windows PowerShell (template)
-& "<KICAD9_PYTHON>" "<SCRIPT_PATH>" --sch "<SCHEMATIC_PATH>" --out "<OUTPUT_PCB_PATH>" --kicad-cli "<KICAD9_KICAD_CLI>" --keep-net
-
-Notes:
-
-CMD can directly execute the quoted executable path.
-
-PowerShell requires & before the executable path.
-
-Example (author's working command)
-Windows CMD
-"D:\app\KiCad\9.0\bin\python.exe" "D:\kicad_test\tools\sch_to_pcb_skeleton.py" --sch "D:\kicad_test\case3\case3.kicad_sch" --out "D:\kicad_test\case3\case3_skeleton.kicad_pcb" --kicad-cli "D:\app\KiCad\9.0\bin\kicad-cli.exe" --keep-net
-Windows PowerShell
-& "D:\app\KiCad\9.0\bin\python.exe" "D:\kicad_test\tools\sch_to_pcb_skeleton.py" --sch "D:\kicad_test\case3\case3.kicad_sch" --out "D:\kicad_test\case3\case3_skeleton.kicad_pcb" --kicad-cli "D:\app\KiCad\9.0\bin\kicad-cli.exe" --keep-net
-CLI Arguments
-
---sch
-Path to the input KiCad schematic (.kicad_sch)
-
---out
-Path to the output PCB skeleton file (.kicad_pcb)
-
---kicad-cli
-Path to KiCad 9 kicad-cli.exe
-
---keep-net
-Keep net assignments in the output PCB skeleton
-
-Common Pitfalls
-kicad-cli not found
-
-If you see an error like "kicad-cli is not recognized", pass the full path to kicad-cli.exe (as shown above).
-
-No module named 'pcbnew'
-
-This usually means you used the wrong Python interpreter. Use KiCad 9 bundled Python (the python.exe inside the KiCad installation).
-
-Footprints not imported
-
-If footprints cannot be loaded, check:
-
-schematic symbols have footprints assigned
-
-KiCad footprint library tables (fp-lib-table) are valid
-
-footprint nicknames resolve correctly on your machine
-
-License
-
-MIT License is recommended for this type of utility repository.
+This project is provided under the [MIT License](LICENSE). Feel free to use and modify it for your own projects.
+```
