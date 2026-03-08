@@ -1,7 +1,7 @@
 
 # kicad-sch-to-pcb-skeleton
 
-**Repository description:**  
+ 
 Generate a KiCad PCB skeleton from a schematic using `kicad-cli` and `pcbnew`.
 
 ---
