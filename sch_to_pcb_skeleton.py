@@ -61,8 +61,8 @@ def run_kicad_cli_export_netlist(kicad_cli: str, sch_path: Path, net_path: Path)
     proc = subprocess.run(cmd, capture_output=True, text=True)
     if proc.returncode != 0:
         raise RuntimeError(
-            "导出 netlist 失败。\n"
-            f"命令: {' '.join(cmd)}\n"
+            "Failed to export netlist.\n"
+            f"Command: {' '.join(cmd)}\n"
             f"stdout:\n{proc.stdout}\n"
             f"stderr:\n{proc.stderr}"
         )
@@ -76,22 +76,22 @@ def parse_netlist(net_path: Path) -> Tuple[List[Component], List[Net]]:
 
     if raw.lstrip().startswith("("):
         raise NetlistError(
-            "导出的 netlist 看起来是 S-expression，而不是 XML。"
-            "请确认导出命令使用了 --format kicadxml。"
+            "Exported netlist appears to be S-expression, not XML. "
+            "Please ensure the export command used --format kicadxml."
         )
 
     try:
         tree = ET.parse(net_path)
     except ET.ParseError as exc:
         preview = raw[:200].replace("\n", " ") if raw else "<empty file>"
-        raise NetlistError(f"无法解析 netlist XML：{exc}。文件开头预览：{preview}") from exc
+        raise NetlistError(f"Cannot parse netlist XML: {exc}. File start preview: {preview}") from exc
 
     root = tree.getroot()
     components_el = root.find("./components")
     nets_el = root.find("./nets")
 
     if components_el is None:
-        raise NetlistError("netlist 中没有 <components> 节点。")
+        raise NetlistError("No <components> node in netlist.")
 
     components: List[Component] = []
     for comp_el in components_el.findall("./comp"):
@@ -140,13 +140,14 @@ def parse_netlist(net_path: Path) -> Tuple[List[Component], List[Net]]:
 def split_footprint_id(fp_id: str) -> Tuple[str, str]:
     if ":" not in fp_id:
         raise FootprintLoadError(
-            f"封装名 '{fp_id}' 不是 '库名:封装名' 这种格式，脚本目前无法自动加载。"
+            f"Footprint identifier '{fp_id}' is not in 'library:name' format. "
+            "The script cannot automatically load it."
         )
     lib_nickname, footprint_name = fp_id.split(":", 1)
     lib_nickname = lib_nickname.strip()
     footprint_name = footprint_name.strip()
     if not lib_nickname or not footprint_name:
-        raise FootprintLoadError(f"封装名 '{fp_id}' 格式不完整。")
+        raise FootprintLoadError(f"Footprint identifier '{fp_id}' is incomplete.")
     return lib_nickname, footprint_name
 
 
@@ -173,7 +174,7 @@ def ensure_kicad_path_vars(kicad_root: Optional[Path]) -> None:
     std_fp = infer_standard_footprint_dir(kicad_root)
     if not std_fp:
         return
-    # 给最常见的版本变量都兜底，避免库表里引用旧版本变量时失效。
+    # Set fallbacks for common version variables, in case the library table references old variables.
     for var in [
         "KICAD9_FOOTPRINT_DIR",
         "KICAD8_FOOTPRINT_DIR",
@@ -286,7 +287,7 @@ def expand_kicad_vars(uri: str, project_dir: Path, kicad_root: Optional[Path]) -
 def build_library_map(project_dir: Path, kicad_root: Optional[Path]) -> Dict[str, Path]:
     mapping: Dict[str, Path] = {}
 
-    # 先读全局，再读项目；项目库表应该覆盖全局同名 nickname。
+    # Read global tables first, then project; project table should override same nicknames.
     for table in candidate_global_fp_lib_tables():
         if table.exists():
             try:
@@ -303,7 +304,7 @@ def build_library_map(project_dir: Path, kicad_root: Optional[Path]) -> Dict[str
         except Exception:
             pass
 
-    # 最后给标准库一个强兜底：nickname -> <standard_dir>/<nickname>.pretty
+    # Finally, provide a strong fallback for standard libraries: nickname -> <standard_dir>/<nickname>.pretty
     std_fp = infer_standard_footprint_dir(kicad_root)
     if std_fp:
         for pretty_dir in std_fp.glob("*.pretty"):
@@ -317,8 +318,8 @@ def resolve_library_path(lib_nickname: str, library_map: Dict[str, Path]) -> Pat
     lib_path = library_map.get(lib_nickname)
     if lib_path is None:
         raise FootprintLoadError(
-            f"找不到 footprint 库 nickname '{lib_nickname}' 对应的库路径。"
-            "请检查全局/项目 fp-lib-table，或确认该库是否是标准库。"
+            f"Cannot find library path for footprint library nickname '{lib_nickname}'. "
+            "Please check global/project fp-lib-table, or confirm that the library is a standard one."
         )
     return lib_path
 
@@ -330,11 +331,11 @@ def load_footprint(pcbnew, io_plugin, library_map: Dict[str, Path], footprint_id
     lib_nickname, footprint_name = split_footprint_id(footprint_id)
     lib_path = resolve_library_path(lib_nickname, library_map)
 
-    # Doxygen 文档里 PCB_IO.FootprintLoad 的第一个参数是 aLibraryPath，不是 nickname。
+    # According to Doxygen, PCB_IO.FootprintLoad's first parameter is aLibraryPath, not nickname.
     fp = io_plugin.FootprintLoad(str(lib_path), footprint_name)
     if fp is None:
         raise FootprintLoadError(
-            f"无法从库路径 '{lib_path}' 加载封装 '{footprint_name}'。"
+            f"Unable to load footprint '{footprint_name}' from library path '{lib_path}'."
         )
     return fp
 
@@ -353,7 +354,7 @@ def assign_nets_to_footprint(pcbnew, footprint, comp_ref: str, comp_to_nodes: Di
             continue
         pad = footprint.FindPadByNumber(pin_number)
         if pad is None:
-            warnings.append(f"{comp_ref} 的 pad '{pin_number}' 在封装里没找到，无法挂到网络 '{net_name}'。")
+            warnings.append(f"Pad '{pin_number}' not found in footprint for {comp_ref}, cannot assign to net '{net_name}'.")
             continue
         pad.SetNet(net_item)
 
@@ -374,8 +375,8 @@ def build_board_from_netlist(
         import pcbnew  # type: ignore
     except Exception as exc:
         raise RuntimeError(
-            "当前 Python 环境无法导入 pcbnew。\n"
-            "这一步必须使用能导入 KiCad pcbnew 模块的 Python 解释器。"
+            "Current Python environment cannot import pcbnew.\n"
+            "This step must be run with a Python interpreter that can import the KiCad pcbnew module."
         ) from exc
 
     board = pcbnew.BOARD()
@@ -391,10 +392,10 @@ def build_board_from_netlist(
     warnings: List[str] = []
     errors: List[str] = []
 
-    # 显式实例化 KiCad sexpr footprint IO，避免依赖全局 nickname 解析器。
+    # Explicitly instantiate KiCad s-expression footprint IO to avoid relying on global nickname resolver.
     io_plugin = pcbnew.PCB_IO_KICAD_SEXPR()
 
-    # 先把网络对象建出来。空网络名跳过。
+    # Create net objects first. Skip empty net names.
     net_items: Dict[str, object] = {}
     for net in nets:
         if not net.name:
@@ -422,7 +423,7 @@ def build_board_from_netlist(
     for index, comp in enumerate(components):
         if not comp.footprint:
             skipped += 1
-            warnings.append(f"{comp.ref} 没有 footprint，已跳过。")
+            warnings.append(f"{comp.ref} has no footprint, skipped.")
             continue
 
         try:
@@ -470,17 +471,17 @@ def locate_default_output_paths(sch_path: Path) -> Tuple[Path, Path]:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="从 KiCad 原理图生成初始 PCB 骨架（独立脚本版）")
-    parser.add_argument("--sch", required=True, help="输入 .kicad_sch 路径")
-    parser.add_argument("--out", help="输出 .kicad_pcb 路径；默认与原理图同名")
-    parser.add_argument("--net", help="中间 netlist 路径；默认与原理图同名")
-    parser.add_argument("--kicad-cli", default="kicad-cli", help="kicad-cli 可执行文件路径，默认直接从 PATH 查找")
-    parser.add_argument("--columns", type=int, default=8, help="初始摆放每行多少个元件，默认 8")
-    parser.add_argument("--pitch-x", type=float, default=25.0, help="相邻元件 X 间距（mm），默认 25")
-    parser.add_argument("--pitch-y", type=float, default=20.0, help="相邻元件 Y 间距（mm），默认 20")
-    parser.add_argument("--margin", type=float, default=20.0, help="左上角边距（mm），默认 20")
-    parser.add_argument("--copper-layers", type=int, default=2, help="铜层数，默认 2")
-    parser.add_argument("--keep-net", action="store_true", help="保留导出的 netlist 文件")
+    parser = argparse.ArgumentParser(description="Generate initial PCB skeleton from KiCad schematic (standalone script)")
+    parser.add_argument("--sch", required=True, help="Input .kicad_sch path")
+    parser.add_argument("--out", help="Output .kicad_pcb path; defaults to same basename as schematic")
+    parser.add_argument("--net", help="Intermediate netlist path; defaults to same basename as schematic")
+    parser.add_argument("--kicad-cli", default="kicad-cli", help="kicad-cli executable path, default looks up from PATH")
+    parser.add_argument("--columns", type=int, default=8, help="Number of components per row, default 8")
+    parser.add_argument("--pitch-x", type=float, default=25.0, help="X spacing between adjacent components (mm), default 25")
+    parser.add_argument("--pitch-y", type=float, default=20.0, help="Y spacing between adjacent components (mm), default 20")
+    parser.add_argument("--margin", type=float, default=20.0, help="Top-left margin (mm), default 20")
+    parser.add_argument("--copper-layers", type=int, default=2, help="Number of copper layers, default 2")
+    parser.add_argument("--keep-net", action="store_true", help="Keep the exported netlist file")
     return parser.parse_args()
 
 
@@ -489,7 +490,7 @@ def main() -> int:
 
     sch_path = Path(args.sch).resolve()
     if not sch_path.exists():
-        print(f"[错误] 原理图不存在：{sch_path}", file=sys.stderr)
+        print(f"[Error] Schematic does not exist: {sch_path}", file=sys.stderr)
         return 1
 
     project_dir = sch_path.parent
@@ -508,14 +509,14 @@ def main() -> int:
         net_path = Path(temp_name)
         temp_net = True
 
-    print(f"[1/4] 导出 netlist：{sch_path} -> {net_path}")
+    print(f"[1/4] Exporting netlist: {sch_path} -> {net_path}")
     run_kicad_cli_export_netlist(args.kicad_cli, sch_path, net_path)
 
-    print(f"[2/4] 解析 netlist：{net_path}")
+    print(f"[2/4] Parsing netlist: {net_path}")
     components, nets = parse_netlist(net_path)
-    print(f"      组件数：{len(components)}，网络数：{len(nets)}")
+    print(f"      Components: {len(components)}, nets: {len(nets)}")
 
-    print(f"[3/4] 生成初始 PCB 骨架：{out_path}")
+    print(f"[3/4] Generating initial PCB skeleton: {out_path}")
     added, skipped, warnings, errors = build_board_from_netlist(
         output_pcb=out_path,
         project_dir=project_dir,
@@ -529,18 +530,18 @@ def main() -> int:
         copper_layers=args.copper_layers,
     )
 
-    print("[4/4] 完成")
-    print(f"      成功导入 footprint：{added}")
-    print(f"      跳过元件：{skipped}")
-    print(f"      输出 PCB：{out_path}")
+    print("[4/4] Done")
+    print(f"      Footprints successfully imported: {added}")
+    print(f"      Skipped components: {skipped}")
+    print(f"      Output PCB: {out_path}")
 
     if warnings:
-        print("\n[警告]")
+        print("\n[Warnings]")
         for item in warnings:
             print(f"  - {item}")
 
     if errors:
-        print("\n[错误详情：这些元件没成功导入 PCB]")
+        print("\n[Errors: these components were not added to the PCB]")
         for item in errors:
             print(f"  - {item}")
 
