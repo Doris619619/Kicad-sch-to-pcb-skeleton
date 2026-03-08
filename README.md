@@ -157,13 +157,3 @@ This file can be opened directly in **PCB Editor** (`pcbnew`) for further manual
 
 ---
 
-## Contributing
-
-Contributions are welcome! If you encounter a bug or have an idea for improvement, please open an issue or submit a pull request.
-
----
-
-## License
-
-This project is provided under the [MIT License](LICENSE). Feel free to use and modify it for your own projects.
-```
