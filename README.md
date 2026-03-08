@@ -16,8 +16,8 @@ The generated PCB is intended to be a **starting board structure**, not a fully 
 Given a KiCad schematic, this tool generates a PCB skeleton containing:
 
 - footprints
-- net assignments
-- simple initial component placement
+- net assignments (ratsnest connectivity)
+- simple initial component placement (grid placement)
 
 ### What this project does not do
 
@@ -44,29 +44,35 @@ This project is currently tested on:
 - **KiCad 9 bundled Python**
 - **KiCad 9 bundled `kicad-cli.exe`**
 
-Example installation paths:
+---
 
-```text
-D:\app\KiCad\9.0\bin\python.exe
-D:\app\KiCad\9.0\bin\kicad-cli.exe
+## Requirements
 
-## Run
+You need:
 
-### 0) Set your KiCad 9 paths (recommended)
+1. **KiCad 9.0 installed**
+2. Access to these two executables inside the KiCad installation:
+   - `python.exe` (KiCad bundled Python, includes `pcbnew`)
+   - `kicad-cli.exe` (KiCad CLI tool)
+3. A valid KiCad schematic file (`.kicad_sch`) that is ready for export:
+   - components are annotated (no `R?`, `C?`, etc.)
+   - footprints are assigned
+4. Footprint libraries properly configured in KiCad:
+   - global `fp-lib-table` and/or project `fp-lib-table` should resolve footprint nicknames correctly
 
-Find these two files in your KiCad 9 installation:
-
-- `python.exe` (KiCad bundled Python)
-- `kicad-cli.exe`
-
-Example locations (YOUR PATH MAY BE DIFFERENT):
-
-- `...\KiCad\9.0\bin\python.exe`
-- `...\KiCad\9.0\bin\kicad-cli.exe`
+> Important: Do **not** use system Python / Conda Python unless it can `import pcbnew`.  
+> This tool is intended to run with **KiCad’s bundled Python**.
 
 ---
 
-### 1) Windows CMD (template)
+## Repository Structure (recommended)
 
-```cmd
-"<KICAD9_PYTHON>" "<SCRIPT_PATH>" --sch "<SCHEMATIC_PATH>" --out "<OUTPUT_PCB_PATH>" --kicad-cli "<KICAD9_KICAD_CLI>" --keep-net
+```text
+.
+├─ tools/
+│  └─ sch_to_pcb_skeleton.py
+├─ examples/
+│  └─ case3/
+│     ├─ case3.kicad_sch
+│     └─ case3_skeleton.kicad_pcb
+└─ README.md
