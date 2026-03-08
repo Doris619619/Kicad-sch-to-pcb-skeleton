@@ -1,4 +1,3 @@
-```markdown
 # kicad-sch-to-pcb-skeleton
 
 **Repository description:**  
@@ -50,11 +49,9 @@ Example installation paths:
 ```text
 D:\app\KiCad\9.0\bin\python.exe
 D:\app\KiCad\9.0\bin\kicad-cli.exe
-```
 
-The script should work on Linux/macOS with appropriate paths, but these platforms have not been formally tested.
 
----
+
 
 ## Dependencies
 
